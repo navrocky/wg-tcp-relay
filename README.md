@@ -1,6 +1,17 @@
-# wg-tcp-relay
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/navrocky/wg-tcp-relay/main/docs/logo.svg" alt="wg-tcp-relay" width="440">
+</h1>
 
-WireGuard over TCP that does not stall.
+<p align="center"><b>WireGuard over TCP that does not stall.</b></p>
+
+<p align="center">
+  <a href="https://github.com/navrocky/wg-tcp-relay/actions/workflows/ci.yml"><img src="https://github.com/navrocky/wg-tcp-relay/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/navrocky/wg-tcp-relay/releases/latest"><img src="https://img.shields.io/github/v/release/navrocky/wg-tcp-relay?sort=semver" alt="Release"></a>
+  <a href="https://hub.docker.com/r/navrocky/wg-tcp-relay"><img src="https://img.shields.io/docker/v/navrocky/wg-tcp-relay?sort=semver&amp;label=docker&amp;logo=docker&amp;logoColor=white" alt="Docker image"></a>
+  <a href="https://hub.docker.com/r/navrocky/wg-tcp-relay"><img src="https://img.shields.io/docker/pulls/navrocky/wg-tcp-relay?logo=docker&amp;logoColor=white" alt="Docker pulls"></a>
+  <a href="https://hub.docker.com/r/navrocky/wg-tcp-relay/tags"><img src="https://img.shields.io/docker/image-size/navrocky/wg-tcp-relay?sort=semver" alt="Image size"></a>
+  <a href="https://github.com/navrocky/wg-tcp-relay/blob/main/LICENSE"><img src="https://img.shields.io/github/license/navrocky/wg-tcp-relay" alt="License: MIT"></a>
+</p>
 
 `wg-tcp-relay` carries the traffic of many WireGuard peers over **one TCP connection**, such as
 an SSH port forward or a [Cloak](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/cloak.md)
