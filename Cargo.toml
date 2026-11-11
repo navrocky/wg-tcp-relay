@@ -1,0 +1,26 @@
+[package]
+name = "wg-tcp-relay"
+version = "0.1.0"
+edition = "2024"
+description = "WireGuard-aware UDP-over-TCP relay that never stalls: bounded queues, drop instead of bufferbloat, handshake priority"
+license = "MIT"
+repository = "https://github.com/navrocky/wg-tcp-relay"
+readme = "README.md"
+keywords = ["wireguard", "tunnel", "udp", "tcp", "relay"]
+categories = ["network-programming", "command-line-utilities"]
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+libc = "0.2.191"
+socket2 = { version = "0.6.5", features = ["all"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "sync", "signal"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = 3

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+
+  e2e:
+    # Real WireGuard through the relay over an emulated 180 ms / 20 Mbit/s link.
+    runs-on: ubuntu-24.04
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kernel modules (netem, tbf, bbr, wireguard)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq "linux-modules-extra-$(uname -r)" || true
+          for m in wireguard sch_netem sch_tbf tcp_bbr; do sudo modprobe "$m"; done
+      - uses: docker/setup-buildx-action@v3
+      - name: Build relay image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: wg-tcp-relay:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build test bench
+        run: docker build -t wg-tcp-relay-e2e tests/e2e
+      - name: Run
+        run: docker run --rm --privileged wg-tcp-relay-e2e
