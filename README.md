@@ -54,7 +54,7 @@ host on `51820/udp`.
 ```yaml
 services:
   wg-tcp-relay:
-    image: navrocky/wg-tcp-relay:0.1
+    image: navrocky/wg-tcp-relay:1
     command: server --listen 127.0.0.1:5000 --target 127.0.0.1:51820
     network_mode: host
     restart: unless-stopped
@@ -91,7 +91,7 @@ Then run the relay client:
 ```yaml
 services:
   wg-tcp-relay:
-    image: navrocky/wg-tcp-relay:0.1
+    image: navrocky/wg-tcp-relay:1
     command: client --listen 0.0.0.0:51820 --connect 127.0.0.1:5000
     network_mode: host
     restart: unless-stopped

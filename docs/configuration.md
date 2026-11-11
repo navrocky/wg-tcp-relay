@@ -55,5 +55,6 @@ them.
 
 ## Compatibility
 
-Both sides must speak the same wire protocol. Before 1.0, a minor release may change it (the
-[changelog](../CHANGELOG.md) always says so), so run the same version on both sides.
+Both sides must speak the same wire protocol. Within a major version (1.x) the protocol and
+options stay compatible, so a 1.2 client works with a 1.0 server. A new major version may
+change them; the [changelog](../CHANGELOG.md) always says so.

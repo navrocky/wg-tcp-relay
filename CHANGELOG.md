@@ -3,11 +3,30 @@
 All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
-project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0,
-minor versions may contain breaking changes to the wire protocol or command-line options;
-such changes are always listed under **Changed** or **Removed**.
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The public
+interface is the wire protocol, the command-line options and the `WGTR_*` environment
+variables: breaking changes to them come only in a new major version.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-11-12
+
+First stable release. No code changes since 0.1.1. The release was tested in production: real
+WireGuard peers over an SSH tunnel between Russia and the US.
+
+### Changed
+
+- The wire protocol (v1), command-line options and `WGTR_*` environment variables are now
+  stable: breaking changes only come in a new major version, and 1.x versions interoperate.
+- Docker image tag `1` now tracks the latest 1.x release; examples use it.
+
+### Added
+
+- systemd units for the server, the client and the SSH tunnel, and a sysctl file
+  (`contrib/systemd`), with an installation guide that uses the release binaries.
+- Documentation in `docs/`: SSH and Cloak transports, configuration, tuning with benchmarks,
+  troubleshooting, alternatives, development.
+- Architecture diagram, logo and README badges.
 
 ## [0.1.1] - 2026-11-11
 
@@ -48,6 +67,7 @@ such changes are always listed under **Changed** or **Removed**.
 - Static musl binary, distroless multi-arch Docker image (`linux/amd64`, `linux/arm64`).
 - End-to-end bench with real WireGuard over an emulated slow, high-latency link (`tests/e2e`).
 
-[Unreleased]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/navrocky/wg-tcp-relay/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/navrocky/wg-tcp-relay/releases/tag/v0.1.0

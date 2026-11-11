@@ -15,7 +15,7 @@ Files used below are in [`contrib/systemd`](../contrib/systemd).
 Releases have static binaries with no dependencies, for `x86_64` and `aarch64`:
 
 ```sh
-V=0.1.1                      # see https://github.com/navrocky/wg-tcp-relay/releases
+V=1.0.0                      # see https://github.com/navrocky/wg-tcp-relay/releases
 ARCH=$(uname -m)             # x86_64 or aarch64
 BASE=https://github.com/navrocky/wg-tcp-relay/releases/download/v$V
 cd /tmp

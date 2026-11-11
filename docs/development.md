@@ -70,16 +70,16 @@ BBR. CI runs the bench on every push.
 ## Versions and releases
 
 The project follows [Semantic Versioning](https://semver.org); changes are listed in
-[CHANGELOG.md](../CHANGELOG.md). Before 1.0, a minor version bump may change the wire protocol
-or options.
+[CHANGELOG.md](../CHANGELOG.md). The wire protocol, command-line options and `WGTR_*`
+variables are the public interface: breaking changes to them need a new major version.
 
 Docker image tags:
 
 | Tag | What |
 |---|---|
 | `X.Y.Z` | exact release |
-| `X.Y` | latest patch release of `X.Y`, recommended for deployments |
-| `X` | latest release of major version `X` (from 1.0 on) |
+| `X.Y` | latest patch release of `X.Y` |
+| `X` | latest release of major version `X`, recommended for deployments |
 | `latest` | latest release |
 | `edge` | current `main`, not a release |
 | `sha-<commit>` | a specific `main` commit |
