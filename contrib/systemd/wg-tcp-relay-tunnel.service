@@ -1,0 +1,27 @@
+# SSH tunnel for wg-tcp-relay: runs on the entry server, forwards 127.0.0.1:5000 to the
+# relay server on the exit server. Edit the host name, then see docs/ssh.md.
+[Unit]
+Description=SSH tunnel for wg-tcp-relay
+Documentation=https://github.com/navrocky/wg-tcp-relay/blob/main/docs/ssh.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/ssh -N \
+  -i /etc/wg-tcp-relay/id_ed25519 \
+  -o UserKnownHostsFile=/etc/wg-tcp-relay/known_hosts \
+  -o StrictHostKeyChecking=yes \
+  -o BatchMode=yes \
+  -o ServerAliveInterval=10 \
+  -o ServerAliveCountMax=3 \
+  -o ExitOnForwardFailure=yes \
+  -o ConnectTimeout=15 \
+  -o Compression=no \
+  -o IPQoS=lowdelay \
+  -L 127.0.0.1:5000:127.0.0.1:5000 \
+  tunnel@exit.example.com
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

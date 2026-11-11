@@ -1,0 +1,38 @@
+# wg-tcp-relay server: runs on the exit server, next to WireGuard.
+# Settings: /etc/wg-tcp-relay/server.env (see docs/configuration.md).
+[Unit]
+Description=wg-tcp-relay server (TCP -> WireGuard)
+Documentation=https://github.com/navrocky/wg-tcp-relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=WGTR_LISTEN=127.0.0.1:5000
+Environment=WGTR_TARGET=127.0.0.1:51820
+EnvironmentFile=-/etc/wg-tcp-relay/server.env
+ExecStart=/usr/local/bin/wg-tcp-relay server
+Restart=always
+RestartSec=2
+
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
