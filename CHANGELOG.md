@@ -9,6 +9,20 @@ such changes are always listed under **Changed** or **Removed**.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-11
+
+### Fixed
+
+- The server kept queuing replies for a session whose client had gone (for example after
+  the client restarted with a new session). Nobody sent them, so they only took memory until
+  the session expired, and the stats showed a growing queue (`queued_frames`,
+  `queue_oldest_ms` of minutes). A queue now accepts traffic only while a TCP connection is
+  draining it, and is cleared when the connection ends, on both client and server.
+
+### Added
+
+- `drop_no_conn` stats counter: traffic dropped because no connection was up.
+
 ## [0.1.0] - 2026-11-11
 
 ### Added
@@ -34,5 +48,6 @@ such changes are always listed under **Changed** or **Removed**.
 - Static musl binary, distroless multi-arch Docker image (`linux/amd64`, `linux/arm64`).
 - End-to-end bench with real WireGuard over an emulated slow, high-latency link (`tests/e2e`).
 
-[Unreleased]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/navrocky/wg-tcp-relay/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/navrocky/wg-tcp-relay/releases/tag/v0.1.0

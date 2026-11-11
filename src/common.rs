@@ -68,6 +68,7 @@ pub struct Snapshot {
     unknown_peer: u64,
     queue_full: u64,
     aged: u64,
+    no_conn: u64,
 }
 
 impl Snapshot {
@@ -84,6 +85,7 @@ impl Snapshot {
         for q in queues {
             s.queue_full += l(&q.drops.overflow);
             s.aged += l(&q.drops.aged);
+            s.no_conn += l(&q.drops.no_conn);
         }
         s
     }
@@ -104,6 +106,7 @@ impl Snapshot {
             udp_out = d(self.udp_out, prev.udp_out),
             drop_queue_full = d(self.queue_full, prev.queue_full),
             drop_aged = d(self.aged, prev.aged),
+            drop_no_conn = d(self.no_conn, prev.no_conn),
             drop_udp_full = d(self.udp_full, prev.udp_full),
             drop_not_wg = d(self.not_wg, prev.not_wg),
             drop_unknown_peer = d(self.unknown_peer, prev.unknown_peer),

@@ -271,7 +271,8 @@ At `info` level the relay logs connections, peers, and every `--stats-secs`:
 
 ```
 stats peers=3 udp_in=48210 udp_out=51877 drop_queue_full=120 drop_aged=310 drop_udp_full=0
-      drop_not_wg=0 drop_unknown_peer=0 queued_frames=2 queued_bytes=2904 queue_oldest_ms=12
+      drop_no_conn=0 drop_not_wg=0 drop_unknown_peer=0 queued_frames=2 queued_bytes=2904
+      queue_oldest_ms=12
 link stats link=127.0.0.1:5000 uptime_s=3600 ping_rtt_ms=192 ping_rtt_max_ms=640
       tcp_rtt_ms=181.5 retrans=0 sent_mb=812 received_mb=5310
 ```
@@ -282,6 +283,7 @@ link stats link=127.0.0.1:5000 uptime_s=3600 ping_rtt_ms=192 ping_rtt_max_ms=640
 | `drop_udp_full` | The local UDP socket buffer was full. Raise `net.core.wmem_max` / `rmem_max`. |
 | `drop_not_wg` | Non-WireGuard datagrams arrived (scanners, a misconfigured peer). |
 | `drop_unknown_peer` | Data for a peer that already expired (normal right after a long idle). |
+| `drop_no_conn` | Traffic arrived while no TCP connection was up (reconnecting). Normal during a reconnect: WireGuard retries handshakes by itself. Constantly growing: the relay cannot connect, see the warnings. |
 | `ping_rtt_ms` vs `tcp_rtt_ms` | In-band RTT, including the relay queues and outer retransmissions, compared with the kernel's RTT estimate. A large gap means data waits *behind* something: queueing or retransmissions. |
 | `retrans` | Outer TCP retransmissions in the interval. Each one stalls the tunnel for at least one RTT. Use `--max-rate-mbit` to avoid them. |
 

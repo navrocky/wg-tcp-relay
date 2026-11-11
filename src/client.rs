@@ -256,6 +256,8 @@ async fn connect_once(ctx: &Ctx, attempt: u64) -> anyhow::Result<()> {
     if let Some(i) = link.tcp() {
         debug!(?i, "tcp state after connect");
     }
+    // While attached, the queue accepts traffic; detached (and cleared) when this ends.
+    let _attached = ctx.q.attach();
     let (rd, wr) = s.into_split();
     let r = tokio::select! {
         r = common::writer(wr, &ctx.q, &link) => r.map_err(|e| e.context("tcp write")),

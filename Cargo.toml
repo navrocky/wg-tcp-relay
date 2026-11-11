@@ -1,6 +1,6 @@
 [package]
 name = "wg-tcp-relay"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "WireGuard-aware UDP-over-TCP relay that never stalls: bounded queues, drop instead of bufferbloat, handshake priority"
 license = "MIT"

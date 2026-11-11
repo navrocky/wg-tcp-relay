@@ -55,6 +55,8 @@ struct PeerQueue {
 pub struct DropStats {
     pub overflow: AtomicU64,
     pub aged: AtomicU64,
+    /// No TCP connection is draining this queue (reconnecting, or a stale server session).
+    pub no_conn: AtomicU64,
 }
 
 /// Queue backlog snapshot.
@@ -118,6 +120,15 @@ impl Queue {
         q.bytes += frame.len();
         q.items.push_back(Item { frame, at: now });
         true
+    }
+
+    /// Drops everything queued.
+    pub fn clear(&mut self) {
+        self.session.clear();
+        self.control.clear();
+        self.control_bytes = 0;
+        self.peers.clear();
+        self.active.clear();
     }
 
     /// Forgets a peer's queue.
@@ -187,28 +198,89 @@ impl Queue {
     }
 }
 
+struct State {
+    queue: Queue,
+    /// Generation of the connection currently draining the queue, if any.
+    consumer: Option<u64>,
+    next_gen: u64,
+}
+
 /// A queue shared between producers (UDP readers) and the single TCP writer.
+///
+/// Frames are only accepted while a connection is attached: without one nobody would send
+/// them, they would only go stale (WireGuard retries handshakes by itself after a reconnect).
 pub struct Shared {
-    q: Mutex<Queue>,
+    st: Mutex<State>,
     notify: Notify,
     pub drops: DropStats,
+}
+
+/// Marks the queue as drained by a connection; detaches on drop (also when the connection
+/// task is aborted).
+pub struct Attached<'a> {
+    q: &'a Shared,
+    generation: u64,
+}
+
+impl Drop for Attached<'_> {
+    fn drop(&mut self) {
+        self.q.detach(self.generation);
+    }
 }
 
 impl Shared {
     pub fn new(limits: Limits) -> Self {
         Self {
-            q: Mutex::new(Queue::new(limits)),
+            st: Mutex::new(State {
+                queue: Queue::new(limits),
+                consumer: None,
+                next_gen: 1,
+            }),
             notify: Notify::new(),
             drops: DropStats::default(),
         }
     }
 
     fn with<T>(&self, f: impl FnOnce(&mut Queue) -> T) -> T {
-        f(&mut self.q.lock().unwrap())
+        f(&mut self.st.lock().unwrap().queue)
     }
 
+    /// A new connection takes over the queue, starting from a clean state.
+    pub fn attach(&self) -> Attached<'_> {
+        let mut st = self.st.lock().unwrap();
+        let generation = st.next_gen;
+        st.next_gen += 1;
+        st.consumer = Some(generation);
+        st.queue.clear();
+        Attached {
+            q: self,
+            generation,
+        }
+    }
+
+    /// Only the current connection may detach: a replaced connection that finishes late must
+    /// not disconnect its successor.
+    fn detach(&self, generation: u64) {
+        let mut st = self.st.lock().unwrap();
+        if st.consumer == Some(generation) {
+            st.consumer = None;
+            st.queue.clear();
+        }
+    }
+
+    pub fn is_attached(&self) -> bool {
+        self.st.lock().unwrap().consumer.is_some()
+    }
+
+    /// Session frames (ping/pong/close); ignored while no connection is attached.
     pub fn push_session(&self, frame: Vec<u8>) {
-        self.with(|q| q.push_session(frame));
+        {
+            let mut st = self.st.lock().unwrap();
+            if st.consumer.is_none() {
+                return;
+            }
+            st.queue.push_session(frame);
+        }
         self.notify.notify_one();
     }
 
@@ -216,15 +288,27 @@ impl Shared {
     pub fn push_wg(&self, peer: u32, kind: crate::wg::Kind, frame: Vec<u8>) {
         let now = Instant::now();
         let len = frame.len();
-        let ok = self.with(|q| match kind {
-            crate::wg::Kind::Control => q.push_control(frame, now),
-            crate::wg::Kind::Data => q.push_data(peer, frame, now),
-        });
-        if ok {
-            self.notify.notify_one();
-        } else {
-            self.drops.overflow.fetch_add(1, Ordering::Relaxed);
-            tracing::trace!(peer, ?kind, len, "drop: queue full");
+        let r = {
+            let mut st = self.st.lock().unwrap();
+            if st.consumer.is_none() {
+                None
+            } else {
+                Some(match kind {
+                    crate::wg::Kind::Control => st.queue.push_control(frame, now),
+                    crate::wg::Kind::Data => st.queue.push_data(peer, frame, now),
+                })
+            }
+        };
+        match r {
+            Some(true) => self.notify.notify_one(),
+            Some(false) => {
+                self.drops.overflow.fetch_add(1, Ordering::Relaxed);
+                tracing::trace!(peer, ?kind, len, "drop: queue full");
+            }
+            None => {
+                self.drops.no_conn.fetch_add(1, Ordering::Relaxed);
+                tracing::trace!(peer, ?kind, len, "drop: no connection");
+            }
         }
     }
 
@@ -355,13 +439,63 @@ mod tests {
         let s = std::sync::Arc::new(Shared::new(Limits::default()));
         let s2 = s.clone();
         let h = tokio::spawn(async move {
+            let _conn = s2.attach();
             let mut out = Vec::new();
             s2.pop_batch(&mut out, 1024).await;
             out
         });
-        tokio::time::sleep(Duration::from_millis(20)).await;
+        while !s.is_attached() {
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
         s.push_session(vec![1, 2, 3]);
         assert_eq!(h.await.unwrap(), vec![1, 2, 3]);
         assert!(s.is_empty());
+    }
+
+    const WG_DATA: crate::wg::Kind = crate::wg::Kind::Data;
+
+    #[test]
+    fn nothing_is_queued_without_a_connection() {
+        let s = Shared::new(Limits::default());
+        s.push_wg(1, WG_DATA, vec![1]);
+        s.push_wg(1, crate::wg::Kind::Control, vec![2]);
+        s.push_session(vec![3]);
+        assert!(s.is_empty());
+        assert_eq!(s.drops.no_conn.load(Ordering::Relaxed), 2);
+        assert_eq!(s.depth().frames, 0);
+    }
+
+    #[test]
+    fn detach_clears_and_stops_queueing() {
+        let s = Shared::new(Limits::default());
+        let conn = s.attach();
+        s.push_wg(1, WG_DATA, vec![1]);
+        assert_eq!(s.depth().frames, 1);
+        drop(conn);
+        assert!(!s.is_attached());
+        assert_eq!(s.depth().frames, 0); // stale data is gone, not counted in stats
+        s.push_wg(1, WG_DATA, vec![2]);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn late_detach_of_replaced_connection_keeps_new_one() {
+        let s = Shared::new(Limits::default());
+        let old = s.attach();
+        let _new = s.attach(); // reconnect: a new connection takes over
+        drop(old); // the replaced connection finishes afterwards
+        assert!(s.is_attached());
+        s.push_wg(1, WG_DATA, vec![1]);
+        assert_eq!(s.depth().frames, 1);
+    }
+
+    #[test]
+    fn attach_starts_clean() {
+        let s = Shared::new(Limits::default());
+        let a = s.attach();
+        s.push_wg(1, WG_DATA, vec![1]);
+        let _b = s.attach();
+        assert_eq!(s.depth().frames, 0);
+        drop(a);
     }
 }
