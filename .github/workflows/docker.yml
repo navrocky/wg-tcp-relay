@@ -26,6 +26,15 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+      - name: Tag must match Cargo.toml version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "v$crate" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $crate"
+            exit 1
+          fi
+          grep -q "^## \[$crate\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $crate"; exit 1; }
       - name: Platform slug
         run: echo "SLUG=${PLATFORM//\//-}" >> "$GITHUB_ENV"
         env:
@@ -104,3 +113,41 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: navrocky/wg-tcp-relay
           short-description: WireGuard over TCP (SSH, Cloak...) that never stalls
+
+  release:
+    # GitHub release for vX.Y.Z tags: notes from CHANGELOG.md, static binaries from the images.
+    runs-on: ubuntu-24.04
+    needs: merge
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract static binaries from the published images
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          mkdir dist
+          for p in amd64:x86_64 arm64:aarch64; do
+            id=$(docker create --platform "linux/${p%%:*}" "${IMAGE}:${v}")
+            docker cp "$id:/wg-tcp-relay" "dist/wg-tcp-relay-${v}-linux-${p##*:}"
+            docker rm "$id" >/dev/null
+          done
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+      - name: Release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on && /^\[[^]]+\]: / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          printf '\n**Docker:** `docker pull navrocky/wg-tcp-relay:%s`\n' "$v" >> notes.md
+          cat notes.md
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=""
+          case "$GITHUB_REF_NAME" in *-*) pre="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" $pre --title "$GITHUB_REF_NAME" --notes-file notes.md dist/*

@@ -323,9 +323,36 @@ show a gap longer than 3 s. Parameters: `DELAY_MS`, `RATE`, `LOSS`, `BUFFER_MS`,
 `CONGESTION`, `MAX_RATE_MBIT`, `DURATION`. It needs the `wireguard`, `sch_netem` and
 `sch_tbf` kernel modules on the host.
 
-Images are built by GitHub Actions for `linux/amd64` and `linux/arm64` and published to
-[Docker Hub](https://hub.docker.com/r/navrocky/wg-tcp-relay): `edge` from `main`, plus
-`X.Y.Z`, `X.Y` and `latest` from `vX.Y.Z` tags.
+## Versions and releases
+
+The project follows [Semantic Versioning](https://semver.org); changes are listed in
+[CHANGELOG.md](CHANGELOG.md). Before 1.0, a minor version bump may change the wire protocol
+or options. Run the same version on both sides.
+
+Docker images (`linux/amd64`, `linux/arm64`) on
+[Docker Hub](https://hub.docker.com/r/navrocky/wg-tcp-relay):
+
+| Tag | What |
+|---|---|
+| `X.Y.Z` | exact release, recommended for deployments |
+| `X.Y` | latest patch release of `X.Y` |
+| `X` | latest release of major version `X` (from 1.0 on) |
+| `latest` | latest release |
+| `edge` | current `main`, not a release |
+| `sha-<commit>` | a specific `main` commit |
+
+Every release on [GitHub](https://github.com/navrocky/wg-tcp-relay/releases) also has static
+Linux binaries (`x86_64`, `aarch64`) and `SHA256SUMS`.
+
+To make a release:
+
+1. Set `version` in `Cargo.toml` and run `cargo check` (this updates `Cargo.lock`).
+2. In `CHANGELOG.md`, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`, add an empty
+   `[Unreleased]` section above it, and update the links at the bottom.
+3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+
+CI refuses a tag that does not match `Cargo.toml` or has no CHANGELOG section. Tags like
+`v1.2.0-rc.1` become pre-releases.
 
 ## License
 
