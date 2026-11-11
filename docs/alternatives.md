@@ -113,12 +113,6 @@ writes datagrams to it without framing, so datagram boundaries are lost. Toolkit
 [gost](https://github.com/go-gost/gost) support many protocols and forwarding modes. None of
 them is tuned for keeping a WireGuard tunnel responsive under load.
 
-## Cloak
-
-[Cloak](https://github.com/cbeuw/Cloak) is not an alternative but a transport:
-it makes a TCP stream look like TLS to a real website. Use it **under** `wg-tcp-relay` when SSH
-is blocked or throttled. See [Cloak transport](cloak.md).
-
 ## When you do not need TCP at all
 
 If UDP between the servers works but WireGuard is fingerprinted and blocked, an obfuscated UDP

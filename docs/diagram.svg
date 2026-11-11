@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="960" height="320" role="img" aria-labelledby="title desc">
+  <title id="title">wg-tcp-relay</title>
+  <desc id="desc">WireGuard peers send UDP to the wg-tcp-relay client on the entry server. All peers share one TCP connection (SSH, Cloak or any TCP transport) to the wg-tcp-relay server on the exit server, which talks UDP to WireGuard on the same host.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d0d7de; }
+    .box { fill: #f6f8fa; stroke: #d0d7de; }
+    .relay { fill: #ddf4ff; stroke: #0969da; stroke-width: 1.5; }
+    .wg { fill: #ffebe9; stroke: #cf222e; stroke-width: 1.5; }
+    .pipe { fill: #0969da; fill-opacity: 0.10; stroke: #0969da; stroke-width: 1.5; }
+    .pill { fill: #f6f8fa; stroke: #d0d7de; }
+    .link { stroke: #59636e; stroke-width: 1.5; fill: none; }
+    .head { fill: #59636e; }
+    .t { fill: #1f2328; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
+    .m { fill: #59636e; }
+    .b { font-weight: 600; }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+    .p1 { stroke: #e5534b; } .f1 { fill: #e5534b; }
+    .p2 { stroke: #2da44e; } .f2 { fill: #2da44e; }
+    .p3 { stroke: #d29922; } .f3 { fill: #d29922; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; stroke: #30363d; }
+      .box { fill: #161b22; stroke: #30363d; }
+      .relay { fill: #0c2d6b; stroke: #4493f8; }
+      .wg { fill: #3c1618; stroke: #f85149; }
+      .pipe { fill: #4493f8; stroke: #4493f8; }
+      .pill { fill: #161b22; stroke: #30363d; }
+      .link { stroke: #9198a1; }
+      .head { fill: #9198a1; }
+      .t { fill: #e6edf3; }
+      .m { fill: #9198a1; }
+    }
+  </style>
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="f1"/></marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="f2"/></marker>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="f3"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="head"/></marker>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="959" height="319" rx="12"/>
+
+  <!-- Peers -->
+  <text class="t m" x="95" y="44" font-size="13" text-anchor="middle">WireGuard peers</text>
+
+  <rect class="box" x="20" y="60" width="150" height="46" rx="8"/>
+  <rect class="p1" x="36" y="72" width="14" height="22" rx="3" fill="none" stroke-width="2"/>
+  <line class="p1" x1="41" y1="89" x2="45" y2="89" stroke-width="2" stroke-linecap="round"/>
+  <text class="t" x="68" y="88" font-size="14">phone</text>
+
+  <rect class="box" x="20" y="122" width="150" height="46" rx="8"/>
+  <rect class="p2" x="33" y="135" width="22" height="14" rx="2" fill="none" stroke-width="2"/>
+  <line class="p2" x1="29" y1="153" x2="59" y2="153" stroke-width="2" stroke-linecap="round"/>
+  <text class="t" x="68" y="150" font-size="14">laptop</text>
+
+  <rect class="box" x="20" y="184" width="150" height="46" rx="8"/>
+  <rect class="p3" x="32" y="206" width="24" height="12" rx="2" fill="none" stroke-width="2"/>
+  <line class="p3" x1="37" y1="206" x2="34" y2="196" stroke-width="2" stroke-linecap="round"/>
+  <line class="p3" x1="51" y1="206" x2="54" y2="196" stroke-width="2" stroke-linecap="round"/>
+  <text class="t" x="68" y="212" font-size="14">router</text>
+
+  <path class="p1" d="M170 83 C 200 83, 198 129, 226 129" fill="none" stroke-width="2" marker-end="url(#a1)"/>
+  <path class="p2" d="M170 145 L 226 145" fill="none" stroke-width="2" marker-end="url(#a2)"/>
+  <path class="p3" d="M170 207 C 200 207, 198 161, 226 161" fill="none" stroke-width="2" marker-end="url(#a3)"/>
+  <text class="t m mono" x="199" y="139" font-size="11" text-anchor="middle">UDP</text>
+
+  <!-- Entry server -->
+  <rect class="box" x="230" y="64" width="190" height="162" rx="10"/>
+  <text class="t b" x="325" y="90" font-size="15" text-anchor="middle">Entry server</text>
+  <rect class="relay" x="245" y="106" width="160" height="64" rx="8"/>
+  <text class="t b" x="325" y="133" font-size="14" text-anchor="middle">wg-tcp-relay</text>
+  <text class="t" x="325" y="154" font-size="13" text-anchor="middle">client</text>
+  <text class="t m mono" x="325" y="200" font-size="12" text-anchor="middle">0.0.0.0:51820/udp</text>
+
+  <!-- One TCP connection -->
+  <text class="t b" x="510" y="111" font-size="13" text-anchor="middle">one TCP connection</text>
+  <rect class="pipe" x="420" y="125" width="180" height="40" rx="20"/>
+  <rect class="f1" x="442" y="140" width="14" height="10" rx="2"/>
+  <rect class="f2" x="463" y="140" width="14" height="10" rx="2"/>
+  <rect class="f3" x="484" y="140" width="14" height="10" rx="2"/>
+  <rect class="f1" x="505" y="140" width="14" height="10" rx="2"/>
+  <rect class="f2" x="526" y="140" width="14" height="10" rx="2"/>
+  <rect class="f1" x="547" y="140" width="14" height="10" rx="2"/>
+  <rect class="f3" x="568" y="140" width="14" height="10" rx="2"/>
+  <text class="t m" x="510" y="187" font-size="12" text-anchor="middle">SSH -L · Cloak · any TCP</text>
+
+  <!-- Exit server -->
+  <rect class="box" x="600" y="64" width="340" height="162" rx="10"/>
+  <text class="t b" x="770" y="90" font-size="15" text-anchor="middle">Exit server</text>
+  <rect class="relay" x="615" y="106" width="160" height="64" rx="8"/>
+  <text class="t b" x="695" y="133" font-size="14" text-anchor="middle">wg-tcp-relay</text>
+  <text class="t" x="695" y="154" font-size="13" text-anchor="middle">server</text>
+  <text class="t m mono" x="695" y="200" font-size="12" text-anchor="middle">127.0.0.1:5000/tcp</text>
+  <path class="link" d="M775 138 L 803 138" marker-end="url(#ag)"/>
+  <rect class="wg" x="806" y="106" width="120" height="64" rx="8"/>
+  <text class="t b" x="866" y="133" font-size="14" text-anchor="middle">WireGuard</text>
+  <text class="t" x="866" y="154" font-size="13" text-anchor="middle">on the host</text>
+  <text class="t m mono" x="866" y="200" font-size="12" text-anchor="middle">:51820/udp</text>
+
+  <!-- Properties -->
+  <rect class="pill" x="98" y="262" width="108" height="26" rx="13"/>
+  <text class="t" x="152" y="279" font-size="12" text-anchor="middle">never blocks</text>
+  <rect class="pill" x="218" y="262" width="164" height="26" rx="13"/>
+  <text class="t" x="300" y="279" font-size="12" text-anchor="middle">bounded, aged queues</text>
+  <rect class="pill" x="394" y="262" width="136" height="26" rx="13"/>
+  <text class="t" x="462" y="279" font-size="12" text-anchor="middle">handshakes first</text>
+  <rect class="pill" x="542" y="262" width="150" height="26" rx="13"/>
+  <text class="t" x="617" y="279" font-size="12" text-anchor="middle">fair between peers</text>
+  <rect class="pill" x="704" y="262" width="157" height="26" rx="13"/>
+  <text class="t" x="782.5" y="279" font-size="12" text-anchor="middle">survives reconnects</text>
+</svg>

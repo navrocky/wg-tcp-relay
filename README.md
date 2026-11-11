@@ -3,15 +3,14 @@
 WireGuard over TCP that does not stall.
 
 `wg-tcp-relay` carries the traffic of many WireGuard peers over **one TCP connection**, such as
-an SSH port forward or a [Cloak](docs/cloak.md) tunnel. It is meant for networks where UDP
-between your servers is blocked or throttled. It understands WireGuard, and it follows one
-rule: **under load, drop packets; never queue them for seconds and never block.**
+an SSH port forward or a [Cloak](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/cloak.md)
+tunnel. It is meant for networks where UDP between your servers is blocked or throttled. It
+understands WireGuard, and it follows one rule: **under load, drop packets; never queue them
+for seconds and never block.**
 
-```
- WireGuard peers ──UDP──► [ entry server ]  ═══ TCP (SSH, Cloak, ...) ═══►  [ exit server ] ──UDP──► WireGuard
- (phones, routers)       wg-tcp-relay client                               wg-tcp-relay server       (on the host)
-                         :51820/udp                                        127.0.0.1:5000/tcp        :51820/udp
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/navrocky/wg-tcp-relay/main/docs/diagram.svg" alt="WireGuard peers → wg-tcp-relay client on the entry server → one TCP connection → wg-tcp-relay server on the exit server → WireGuard" width="100%">
+</p>
 
 Peers keep their WireGuard configs: only the `Endpoint` changes, from the exit server to the
 entry server.
@@ -32,17 +31,16 @@ Generic UDP-over-TCP tunnels tend to fail with WireGuard in two ways:
 - peers get the link in turns (round-robin);
 - sessions survive reconnects of the TCP connection.
 
-[How it compares to wstunnel, udp2raw, udp-over-tcp and others](docs/alternatives.md).
+[How it compares to wstunnel, udp2raw, udp-over-tcp and others](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/alternatives.md).
 
 ## Quick start
 
-The example uses an SSH port forward as the transport and assumes WireGuard runs on the exit
-server's host, listening on `51820/udp`.
+The example uses an SSH forward as the transport, with WireGuard running on the exit server's
+host on `51820/udp`.
 
-**1. Exit server** (where WireGuard runs). Start the relay server on localhost:
+**1. Exit server.** Run the relay server next to WireGuard:
 
 ```yaml
-# docker-compose.yml
 services:
   wg-tcp-relay:
     image: navrocky/wg-tcp-relay:0.1
@@ -51,48 +49,35 @@ services:
     restart: unless-stopped
 ```
 
-Then create a user that may only forward to the relay:
+**2. Entry server.** Forward a local port to the relay server over SSH:
 
 ```sh
-useradd -m -s /usr/sbin/nologin tunnel
-install -d -m 700 -o tunnel -g tunnel ~tunnel/.ssh
-echo 'restrict,port-forwarding,permitopen="127.0.0.1:5000" ssh-ed25519 AAAA... entry' \
-  > ~tunnel/.ssh/authorized_keys
-chown tunnel:tunnel ~tunnel/.ssh/authorized_keys
+ssh -N -L 127.0.0.1:5000:127.0.0.1:5000 \
+    -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
+    -o ExitOnForwardFailure=yes \
+    -o ConnectTimeout=15 \
+    -o Compression=no \
+    user@exit.example.com
 ```
 
-**2. Entry server** (the address peers connect to). Open the SSH tunnel as a systemd service:
+What the options do:
 
-```ini
-# /etc/systemd/system/wg-tcp-relay-tunnel.service
-[Unit]
-Description=SSH tunnel for wg-tcp-relay
-After=network-online.target
-Wants=network-online.target
+- `-N -L 127.0.0.1:5000:127.0.0.1:5000`: only forwards the entry server's local port 5000 to
+  port 5000 on the exit server; no shell.
+- `ServerAliveInterval=10`, `ServerAliveCountMax=3`: notice a dead connection within about
+  30 s instead of minutes, and exit so it gets restarted.
+- `ExitOnForwardFailure=yes`: exit if the forward cannot be set up, instead of staying
+  connected without it.
+- `ConnectTimeout=15`: retry quickly when a connection attempt hangs.
+- `Compression=no`: WireGuard traffic is encrypted and does not compress.
 
-[Service]
-ExecStart=/usr/bin/ssh -N -i /etc/wg-tcp-relay/id_ed25519 \
-  -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \
-  -o ConnectTimeout=15 -o UserKnownHostsFile=/etc/wg-tcp-relay/known_hosts \
-  -L 127.0.0.1:5000:127.0.0.1:5000 tunnel@exit.example.com
-Restart=always
-RestartSec=3
+Keep the command running and restart it when it exits, for example with a systemd service with
+`Restart=always`. Use a separate SSH connection for anything else you forward: the relay's
+connection should carry only WireGuard.
 
-[Install]
-WantedBy=multi-user.target
-```
-
-```sh
-mkdir -p /etc/wg-tcp-relay
-ssh-keygen -t ed25519 -N '' -C entry -f /etc/wg-tcp-relay/id_ed25519   # this public key goes to step 1
-ssh-keyscan exit.example.com > /etc/wg-tcp-relay/known_hosts            # check the fingerprint
-systemctl enable --now wg-tcp-relay-tunnel
-```
-
-Then start the relay client:
+Then run the relay client:
 
 ```yaml
-# docker-compose.yml
 services:
   wg-tcp-relay:
     image: navrocky/wg-tcp-relay:0.1
@@ -102,22 +87,25 @@ services:
 ```
 
 **3. Peers.** Set `Endpoint = entry.example.com:51820` and allow `51820/udp` in the entry
-server's firewall. Nothing else changes.
+server's firewall.
 
-Without Docker, see [installing with systemd](docs/systemd.md). Static binaries for x86_64 and
-aarch64 are attached to every [release](https://github.com/navrocky/wg-tcp-relay/releases).
+The [SSH guide](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/ssh.md) covers a
+restricted tunnel user, sshd settings and reverse (`-R`) tunnels.
+[Installing with systemd](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/systemd.md)
+covers setups without Docker, with ready-made units. Static binaries are attached to every
+[release](https://github.com/navrocky/wg-tcp-relay/releases).
 
 ## Documentation
 
-- [Installing with systemd](docs/systemd.md): binary, units, sysctls, no Docker
-- [SSH transport](docs/ssh.md): what each option does, sshd settings, reverse (`-R`) setup
-- [Cloak transport](docs/cloak.md): TCP disguised as TLS, for networks with DPI
-- [Configuration](docs/configuration.md): all options and environment variables
-- [Tuning and benchmarks](docs/tuning.md): `--max-rate-mbit`, congestion control, kernel settings
-- [Troubleshooting](docs/troubleshooting.md): reading the logs, typical problems
-- [Alternatives](docs/alternatives.md): wstunnel, udp2raw, udp-over-tcp, Cloak, and others
-- [Development](docs/development.md): building, tests, the end-to-end bench, releases
-- [Changelog](CHANGELOG.md)
+- [Installing with systemd](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/systemd.md): binary, units, sysctls, no Docker
+- [SSH transport](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/ssh.md): options, restricted user, sshd, reverse tunnels
+- [Cloak transport](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/cloak.md): TCP disguised as TLS, for networks with DPI
+- [Configuration](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/configuration.md): all options and environment variables
+- [Tuning and benchmarks](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/tuning.md): `--max-rate-mbit`, congestion control, kernel settings
+- [Troubleshooting](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/troubleshooting.md): reading the logs, typical problems
+- [Alternatives](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/alternatives.md): wstunnel, udp2raw, udp-over-tcp and others
+- [Development](https://github.com/navrocky/wg-tcp-relay/blob/main/docs/development.md): building, tests, the end-to-end bench, releases
+- [Changelog](https://github.com/navrocky/wg-tcp-relay/blob/main/CHANGELOG.md)
 
 ## License
 
